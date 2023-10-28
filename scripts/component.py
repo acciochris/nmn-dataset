@@ -69,7 +69,7 @@ def get_components(image):
     """
 
     processed = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-    processed = cv.threshold(grayscale, 0, 1, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)[1]
+    processed = cv.threshold(processed, 0, 1, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)[1]
     _, _, stats, _ = cv.connectedComponentsWithStats(processed)
     components = pd.DataFrame(
         stats[
