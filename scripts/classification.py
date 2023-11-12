@@ -86,14 +86,28 @@ def generate_components(write: bool = False):
 ref = cv.imread("categorized/156.jpg")  # "F" as in a chord
 ref = cv.cvtColor(ref, cv.COLOR_BGR2GRAY)
 ref = cv.threshold(ref, 0, 1, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+ref = ref.astype("float32")  # switch to float for better resizing, etc.
 
 components = generate_components()
 similarities = np.empty(len(components))
 for i, component in enumerate(components):
-    resized = cv.resize(
-        component, (ref.shape[1], ref.shape[0]), interpolation=cv.INTER_NEAREST
+    dimensions = (
+        max(
+            ref.shape[1], component.shape[1]
+        ),  # maximum dimensions to avoid compression and data loss
+        max(ref.shape[0], component.shape[0]),
     )
-    similarity = cv.matchTemplate(resized, ref, cv.TM_CCOEFF_NORMED).item()
+    resized = cv.resize(
+        component.astype("float32"),
+        dimensions,
+        interpolation=cv.INTER_CUBIC,
+    )
+    resized_ref = cv.resize(
+        ref,
+        dimensions,
+        interpolation=cv.INTER_CUBIC,
+    )
+    similarity = cv.matchTemplate(resized, resized_ref, cv.TM_CCOEFF_NORMED).item()
 
     similarities[i] = similarity
 
@@ -103,21 +117,162 @@ plt.figure(figsize=(12, 5))
 plt.plot(similarities)
 plt.title("Similarities from 'F'")
 
+
 # %%
-for thres in np.linspace(0.75, 0.95, 21):
-    for i, idx in enumerate(np.arange(len(components))[similarities > thres]):
+def compare(source, target, method: int = cv.TM_CCOEFF_NORMED):
+    aspect_ratios = (
+        source.shape[1] / target.shape[1],
+        source.shape[0] / target.shape[0],
+    )
+    coef = (
+        min(aspect_ratios) / max(aspect_ratios)
+    ) ** 2  # penalize large differences in aspect ratio
+
+    source, target = resize(source, target)
+
+    return cv.matchTemplate(source, target, method=method).item() * coef
+
+
+def resize(source, target):
+    dimensions = (
+        max(
+            source.shape[1], target.shape[1]
+        ),  # maximum dimensions to avoid compression and data loss
+        max(source.shape[0], target.shape[0]),
+    )
+    source = cv.resize(
+        source.astype("float32"),
+        dimensions,
+        interpolation=cv.INTER_CUBIC,
+    )
+    target = cv.resize(
+        target.astype("float32"),
+        dimensions,
+        interpolation=cv.INTER_CUBIC,
+    )
+
+    return source, target
+
+
+# %%
+def compare_batch(sources, target, method: int = cv.TM_CCOEFF_NORMED):
+    similarities = np.empty(len(sources), dtype="float32")
+    for i, source in enumerate(sources):
+        similarities[i] = compare(source, target, method=method)
+
+    return similarities
+
+
+# %%
+# compare different thresholds
+if False:
+    for thres in np.linspace(0.75, 0.95, 21):
+        for i, idx in enumerate(np.arange(len(components))[similarities > thres]):
+            if i % 36 == 0:
+                fig, axs = plt.subplots(6, 6, figsize=(12, 12))
+            fig.suptitle(f"{thres=:.2f}")
+            j = i % 36
+            axs[j // 6, j % 6].imshow(components[idx], cmap="gray_r")
+            fig.tight_layout()
+
+# %%
+methods = [
+    "TM_CCOEFF_NORMED",
+    "TM_CCOEFF",
+    "TM_CCORR_NORMED",
+    "TM_CCORR",
+    "TM_SQDIFF_NORMED",
+    "TM_SQDIFF",
+]
+
+components = generate_components()
+for method in methods:
+    print(method)
+    method_val: int = getattr(cv, method)
+    similarities = compare_batch(components, ref, method=method_val)
+    plt.figure(figsize=(12, 5))
+    plt.plot(similarities)
+    plt.title(f"Similarities from 'F' with {method=}")
+
+    continue
+    print(len(np.arange(len(components))[similarities > 0.80]))
+    for i, idx in enumerate(np.arange(len(components))[similarities > 0.80]):
         if i % 36 == 0:
             fig, axs = plt.subplots(6, 6, figsize=(12, 12))
-        fig.suptitle(f"{thres=:.2f}")
+        fig.suptitle(f"Filtered 'F's for {method=}")
         j = i % 36
         axs[j // 6, j % 6].imshow(components[idx], cmap="gray_r")
         fig.tight_layout()
 
 # %%
-plt.imshow(components[156], cmap="gray_r")
+from pathlib import Path
+
+
+def generate_similarities(components, categories: list):
+    similarities = np.stack(
+        [compare_batch(components, category) for category in categories]
+    )
+
+    return similarities
+
+
+def classify_components(components, categories: list):
+    similarities = generate_similarities(components, categories)
+    return similarities.argmax(axis=0)
+
 
 # %%
-ref
+def read_category(path: Path):
+    image = cv.imread(str(path))
+    image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    image = cv.threshold(image, 0, 1, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+    return image
+
+
+categories = [read_category(path.resolve()) for path in Path("categorized/").iterdir()]
+components = generate_components()
+similarities = generate_similarities(components, categories)
+results = similarities.argmax(axis=0)
 
 # %%
-components[156]
+Path("classes.txt").write_text(str(list(results)))
+
+
+# %%
+def compare_component_category(component_idx, category_idx):
+    component, category = resize(components[component_idx], categories[category_idx])
+    print(component.shape, category.shape)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    axs[0].imshow(components[component_idx], cmap="gray_r")
+    axs[1].imshow(categories[category_idx], cmap="gray_r")
+    similarity = compare(components[component_idx], categories[category_idx])
+    print(f"Similarity: {similarity}")
+
+
+# %%
+indices = []
+
+count = 0
+for i in range(len(results)):
+    if results[i] == 3:
+        count += 1
+        if count == 5:
+            indices.append(i - 4)
+            count = 0
+    else:
+        count = 0
+
+print(indices)
+
+compare_component_category(680, 3)
+components[678]
+
+# %%
+similarities[:, 126].T
+
+# %%
+similarities[:, 40].T.argmax()
+
+# %%
+categories = [path.resolve() for path in Path("categorized/").iterdir()]
+categories[39]
