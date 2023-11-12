@@ -161,3 +161,5 @@ cython_debug/
 
 notebooks/**/*.png
 notebooks/**/*.jpg
+*.tar.gz
+*.tgz
