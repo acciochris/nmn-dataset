@@ -9,7 +9,7 @@ def get_components(image):
     """Get the individual connected components of an image
 
     Returns:
-        tuple (labeled_image, coordinates, components)
+        tuple (coordinates, components)
     """
 
     processed = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
@@ -31,7 +31,6 @@ def get_components(image):
     coords["y2"] = coords.y + coords.h
 
     return (
-        img,
         coords,
         [processed[r.y : r.y2, r.x : r.x2] for _, r in coords.iterrows()],
     )
