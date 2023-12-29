@@ -105,6 +105,24 @@ paths, contents = generate_categories()
 # results = classify_components(components, categories)
 
 # %%
+# numpy array to bytes and back
+
+import numpy as np
+from io import BytesIO
+
+
+def numpy_to_bytes(arr: np.ndarray) -> bytes:
+    with BytesIO() as f:
+        np.save(f, arr)
+        return f.getvalue()
+
+
+def bytes_to_numpy(b: bytes) -> np.ndarray:
+    with BytesIO(b) as f:
+        return np.load(f)
+
+
+# %%
 # insert categories and its variants
 
 from sqlalchemy.orm import sessionmaker
@@ -114,33 +132,46 @@ Session = sessionmaker(bind=engine)
 segments = [path.stem.split(".") for path in paths]
 category_names = {s[0] for s in segments}
 categories = {name: ComponentCategory(name) for name in category_names}
+variants = []
 
 for s, c in zip(segments, contents):
-    categories[s[0]].variants.append(ComponentCategoryVariant(content=c.tobytes()))
+    variant = ComponentCategoryVariant(content=numpy_to_bytes(c))
+    categories[s[0]].variants.append(variant)
+    variants.append(variant)
 
 # %%
 with Session() as session:
+    session.expire_on_commit = False
     session.add_all(categories.values())
     session.commit()
 
 # %%
-from component_classification import get_components, compare_batch
+from component_classification import get_components, classify_components
 
 from pathlib import Path
 
 import cv2 as cv
-import numpy as np
 from sqlalchemy import select
 
 pages = []
+targets = [bytes_to_numpy(v.content) for v in variants]
 
 for path in Path("scores/").iterdir():
+    print(path)
     img = cv.imread(str(path))
     coords, components = get_components(img)
 
-    with Session() as session:
-        variants = session.execute(select(ComponentCategoryVariant))
-        targets = [np.frombuffer(v.content, dtype=np.uint8).resize() for v in variants]
+    results = classify_components(components, targets)
 
-    for (_, row), content in zip(coords.iterrows(), components):
-        component = Component(content.tobytes(), row.x, row.y, row.w, row.h)
+    with Session(expire_on_commit=False) as session:
+        page = Page(content=numpy_to_bytes(img))
+        for (i, row), content in zip(coords.iterrows(), components):
+            component = Component(numpy_to_bytes(content), row.x, row.y, row.w, row.h)
+            component.category = categories[variants[results[i]].category.name]
+            component.page = page
+            session.add(component)
+
+        session.add(page)
+        session.commit()
+
+# %%
