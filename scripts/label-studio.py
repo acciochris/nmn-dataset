@@ -20,6 +20,7 @@ sys.path.insert(0, "../lib")
 
 # %%
 from db import *
+from sqlalchemy import create_engine
 
 engine = create_engine("sqlite:///nmn.db", echo=False)
 Base.metadata.create_all(engine)
