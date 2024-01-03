@@ -33,10 +33,10 @@ class ComponentCategory(Base):
     name: Mapped[str] = mapped_column(String(20))
 
     variants: Mapped[list["ComponentCategoryVariant"]] = relationship(
-        back_populates="category", default_factory=list
+        back_populates="category", default_factory=list, repr=False
     )
     components: Mapped[list["Component"]] = relationship(
-        back_populates="category", default_factory=list
+        back_populates="category", default_factory=list, repr=False
     )
 
 
@@ -47,7 +47,7 @@ class ComponentCategoryVariant(Base):
     category_id: Mapped[int] = mapped_column(
         ForeignKey("component_category.id"), init=False
     )
-    content: Mapped[bytes | None] = mapped_column(default=None)
+    content: Mapped[bytes | None] = mapped_column(default=None, repr=False)
 
     category: Mapped["ComponentCategory"] = relationship(
         back_populates="variants", default=None
@@ -66,7 +66,7 @@ class Component(Base):
     y: Mapped[int]
     w: Mapped[int]
     h: Mapped[int]
-    content: Mapped[bytes | None] = mapped_column(default=None)
+    content: Mapped[bytes | None] = mapped_column(default=None, repr=False)
 
     category: Mapped["ComponentCategory"] = relationship(
         back_populates="components", default=None
@@ -81,10 +81,10 @@ class Page(Base):
     w: Mapped[int]
     h: Mapped[int]
     name: Mapped[str | None] = mapped_column(default=None)
-    content: Mapped[bytes | None] = mapped_column(default=None)
+    content: Mapped[bytes | None] = mapped_column(default=None, repr=False)
 
     components: Mapped[list["Component"]] = relationship(
-        back_populates="page", default_factory=list
+        back_populates="page", default_factory=list, repr=False
     )
 
 
