@@ -162,3 +162,4 @@ notebooks/**/*.png
 notebooks/**/*.jpg
 *.tar.gz
 *.tgz
+*.db
