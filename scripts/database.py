@@ -48,7 +48,7 @@ class ComponentCategoryVariant(Base):
     category_id: Mapped[int] = mapped_column(
         ForeignKey("component_category.id"), init=False
     )
-    content: Mapped[bytes]
+    content: Mapped[bytes | None] = mapped_column(default=None)
 
     category: Mapped["ComponentCategory"] = relationship(
         back_populates="variants", default=None
@@ -63,11 +63,11 @@ class Component(Base):
     category_id: Mapped[int] = mapped_column(
         ForeignKey("component_category.id"), init=False
     )
-    content: Mapped[bytes]
     x: Mapped[int]
     y: Mapped[int]
     w: Mapped[int]
     h: Mapped[int]
+    content: Mapped[bytes | None] = mapped_column(default=None)
 
     category: Mapped["ComponentCategory"] = relationship(
         back_populates="components", default=None
@@ -79,14 +79,17 @@ class Page(Base):
     __tablename__ = "page"
 
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
-    content: Mapped[bytes]
+    w: Mapped[int]
+    h: Mapped[int]
+    name: Mapped[str | None] = mapped_column(default=None)
+    content: Mapped[bytes | None] = mapped_column(default=None)
 
     components: Mapped[list["Component"]] = relationship(
         back_populates="page", default_factory=list
     )
 
 
-engine = create_engine("sqlite:///nmn.db", echo=True)
+engine = create_engine("sqlite:///nmn.db", echo=False)
 Base.metadata.create_all(engine)
 
 # %%
@@ -94,7 +97,7 @@ import sys
 
 sys.path.insert(0, "../lib")
 
-from component_classification import (
+from component import (
     generate_categories,
     generate_components,
     classify_components,
@@ -146,12 +149,11 @@ with Session() as session:
     session.commit()
 
 # %%
-from component_classification import get_components, classify_components
+from component import get_components, classify_components
 
 from pathlib import Path
 
 import cv2 as cv
-from sqlalchemy import select
 
 pages = []
 targets = [bytes_to_numpy(v.content) for v in variants]
@@ -164,14 +166,35 @@ for path in Path("scores/").iterdir():
     results = classify_components(components, targets)
 
     with Session(expire_on_commit=False) as session:
-        page = Page(content=numpy_to_bytes(img))
+        page = Page(
+            w=img.shape[1], h=img.shape[0], name=path.name
+        )  # numpy_to_bytes(img)
         for (i, row), content in zip(coords.iterrows(), components):
-            component = Component(numpy_to_bytes(content), row.x, row.y, row.w, row.h)
+            if row.w * row.h > 40000:
+                continue  # too big
+            component = Component(
+                x=int(row.x), y=int(row.y), w=int(row.w), h=int(row.h)
+            )  # numpy_to_bytes(content)
             component.category = categories[variants[results[i]].category.name]
             component.page = page
             session.add(component)
 
         session.add(page)
         session.commit()
+
+# %%
+# test db lib
+from sqlalchemy import create_engine
+
+engine = create_engine("sqlite:///nmn.db", echo=False)
+
+# %%
+import sys
+
+sys.path.insert(0, "../lib")
+
+from db import *
+
+create_db(engine, "./categorized/", "./scores", workers=4, store_content=True)
 
 # %%
