@@ -1,3 +1,4 @@
+from os import PathLike
 from pathlib import Path
 
 import cv2 as cv
@@ -124,6 +125,6 @@ def read_category(path: Path):
     return image
 
 
-def generate_categories():
-    paths = list(Path("categorized/").iterdir())
+def generate_categories(path: str | PathLike = "categorized"):
+    paths = list(Path(path).iterdir())
     return paths, [read_category(path) for path in paths]
