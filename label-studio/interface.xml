@@ -1,0 +1,49 @@
+<View>
+   <Image name="image" value="$image" zoom="true" zoomControl="true"/>
+   <View>
+       <Filter toName="label" minlength="0" name="filter"/>
+       <RectangleLabels name="label" toName="image">
+           <Label value="5" background="#FFA39E"/>
+           <Label value="1" background="#D4380D"/>
+           <Label value="lparen" background="#FFC069"/>
+           <Label value="P" background="#AD8B00"/>
+           <Label value="0" background="#D3F261"/>
+           <Label value="segno" background="#389E0D"/>
+           <Label value="o" background="#5CDBD3"/>
+           <Label value="hbar" background="#096DD9"/>
+           <Label value="F" background="#ADC6FF"/>
+           <Label value="D" background="#9254DE"/>
+           <Label value="H" background="#F759AB"/>
+           <Label value="m" background="#FFA39E"/>
+           <Label value="G" background="#D4380D"/>
+           <Label value="tie" background="#FFC069"/>
+           <Label value="gchord" background="#AD8B00"/>
+           <Label value="3" background="#D3F261"/>
+           <Label value="A" background="#389E0D"/>
+           <Label value="b" background="#5CDBD3"/>
+           <Label value="8" background="#096DD9"/>
+           <Label value="vbar" background="#ADC6FF"/>
+           <Label value="2" background="#9254DE"/>
+           <Label value="B" background="#F759AB"/>
+           <Label value="a" background="#FFA39E"/>
+           <Label value="u" background="#D4380D"/>
+           <Label value="hbar_xl" background="#FFC069"/>
+           <Label value="7" background="#AD8B00"/>
+           <Label value="d" background="#D3F261"/>
+           <Label value="rparen" background="#389E0D"/>
+           <Label value="flat" background="#5CDBD3"/>
+           <Label value="s" background="#096DD9"/>
+           <Label value="9" background="#ADC6FF"/>
+           <Label value="hbar_l" background="#9254DE"/>
+           <Label value="J" background="#F759AB"/>
+           <Label value="E" background="#FFA39E"/>
+           <Label value="dot" background="#D4380D"/>
+           <Label value="C" background="#FFC069"/>
+           <Label value="sharp" background="#AD8B00"/>
+           <Label value="4" background="#D3F261"/>
+           <Label value="6" background="#389E0D"/>
+           <Label value="X" background="#5CDBD3"/>
+           <Label value="slash" background="#096DD9"/>
+       </RectangleLabels>
+   </View>
+</View>
