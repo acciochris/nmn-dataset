@@ -37,29 +37,29 @@ def get_components(image):
     )
 
 
-def generate_components(write: bool = False):
-    Path("components/").mkdir(exist_ok=True)
+# def generate_components(write: bool = False):
+#     Path("components/").mkdir(exist_ok=True)
 
-    filtered = []
+#     filtered = []
 
-    i = 0
-    for img in Path("scores/").iterdir():
-        components = get_components(cv.imread(str(img.resolve())))
-        for component in components[2]:
-            if component.shape[0] * component.shape[1] > 40_000:
-                continue  # component too large
+#     i = 0
+#     for img in Path("scores/").iterdir():
+#         components = get_components(cv.imread(str(img.resolve())))
+#         for component in components[2]:
+#             if component.shape[0] * component.shape[1] > 40_000:
+#                 continue  # component too large
 
-            filtered.append(component)
+#             filtered.append(component)
 
-            if not write:
-                continue
+#             if not write:
+#                 continue
 
-            cv.imwrite(str(Path("components") / f"{i}.jpg"), component * 255)
-            i += 1
-            if i % 50 == 0:
-                print(i)
+#             cv.imwrite(str(Path("components") / f"{i}.jpg"), component * 255)
+#             i += 1
+#             if i % 50 == 0:
+#                 print(i)
 
-    return filtered
+#     return filtered
 
 
 def compare(source, target, method: int = cv.TM_CCOEFF_NORMED):
@@ -86,12 +86,12 @@ def resize(source, target):
     source = cv.resize(
         source.astype("float32"),
         dimensions,
-        interpolation=cv.INTER_CUBIC,
+        interpolation=cv.INTER_LINEAR,
     )
     target = cv.resize(
         target.astype("float32"),
         dimensions,
-        interpolation=cv.INTER_CUBIC,
+        interpolation=cv.INTER_LINEAR,
     )
 
     return source, target
